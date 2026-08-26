@@ -1,0 +1,23 @@
+# Data (large datasets — don't commit)
+data/
+!data/jeff/README.md
+!data/jeff/data_dictionary.txt
+!data/TML-Database/README.md
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# PyCharm
+.idea/
+
+# OS cruft
+.DS_Store
+
+# Env/secrets
+.env
