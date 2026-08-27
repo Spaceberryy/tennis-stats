@@ -2,12 +2,20 @@ import pandas as pd
 
 class PlayerStats:
     def __init__(self, data: pd.DataFrame, player_name):
+
+        if player_name not in data['winner_name'] and player_name not in data['loser_name']:
+            raise KeyError(f"Player name '{player_name}' not found in data")
+
         self.data = data
         self.player_name = player_name
 
     def _get_data_column_helper(self, col_name, use_opponent = False):
         winner_col = 'w_' + col_name
         loser_col = 'l_' + col_name
+
+        for col in (winner_col, loser_col):
+            if col not in self.data.columns:
+                raise KeyError(f"Column '{col}' not found in data")
 
         if not use_opponent:
             data_in_match_won = self.data.loc[self.data['winner_name'] == self.player_name, winner_col].sum()
@@ -59,6 +67,11 @@ class PlayerStats:
     def head_to_head_record(self, player_two):
         no_matches_won_by_player_one = len(self.data[(self.data['winner_name'] == self.player_name) & (self.data['loser_name'] == player_two)])
         no_matches_won_by_player_two = len(self.data[(self.data['winner_name'] == player_two) & (self.data['loser_name'] == self.player_name)])
+
+        total = no_matches_won_by_player_one + no_matches_won_by_player_two
+        if total == 0:
+            raise ValueError(f"No matches found for '{self.player_name}' and '{player_two}'")
+
 
         return no_matches_won_by_player_one, no_matches_won_by_player_two
     def get_break_points_conversion_rate(self):
@@ -115,32 +128,37 @@ class PlayerStats:
         return (wins_in_last_N_matches / len(last_N_matches)) * 100
 
 
-data = pd.read_csv('../data/TML-Database/2025.csv')
+data = pd.read_csv('../data/TML-Database/2006.csv')
 
-jannik_sinner = PlayerStats(data, 'Jannik Sinner')
+def main():
+    player = PlayerStats(data, 'Roger Federer')
 
-print(f'Ace count: {jannik_sinner.get_ace_count()}')
+    print("Displaying stats for Jannik Sinner:-")
+    print(f'Ace count: {player.get_ace_count()}')
 
-print(f'First serve percentage: {jannik_sinner.get_first_serve_percentage()}')
+    print(f'First serve percentage: {player.get_first_serve_percentage()}')
 
-print(f'Break points saved percentage: {jannik_sinner.get_break_points_saved_rate()}')
+    print(f'Break points saved percentage: {player.get_break_points_saved_rate()}')
 
-print(f'Surface win rate: {jannik_sinner.get_surface_win_rate('Hard')}')
+    print(f'Surface win rate: {player.get_surface_win_rate('Hard')}')
 
-player_one_wins, player_two_wins = jannik_sinner.head_to_head_record('Carlos Alcaraz')
-print(f'{player_one_wins} - {player_two_wins}')
+    player_one_wins, player_two_wins = player.head_to_head_record('Carlos Alcaraz')
+    print(f'{player_one_wins} - {player_two_wins}')
 
-print(f'Break point conversion rate: {jannik_sinner.get_break_points_conversion_rate()}')
+    print(f'Break point conversion rate: {player.get_break_points_conversion_rate()}')
 
-print(f'First serve win rate: {jannik_sinner.get_first_serve_win_percentage()}')
+    print(f'First serve win rate: {player.get_first_serve_win_percentage()}')
 
-print(f'Second serve in rate: {jannik_sinner.get_second_serve_win_percentage()}')
+    print(f'Second serve in rate: {player.get_second_serve_win_percentage()}')
 
-print(f'Win percentage: {jannik_sinner.get_win_percentage()}')
+    print(f'Win percentage: {player.get_win_percentage()}')
 
-N = 10
-print(f'Last {N} matches won: {jannik_sinner.get_last_N_win_percentage(N)}')
+    N = 10
+    print(f'Last {N} matches won: {player.get_last_N_win_percentage(N)}')
 
+
+if __name__ == '__main__':
+    main()
 
 
 
