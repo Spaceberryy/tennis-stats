@@ -1,9 +1,15 @@
 import pandas as pd
 
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
+
 class PlayerStats:
     def __init__(self, data: pd.DataFrame, player_name):
 
-        if player_name not in data['winner_name'] and player_name not in data['loser_name']:
+        if player_name not in data['winner_name'].values and player_name not in data['loser_name'].values:
+            logger.error(f"Player name '{player_name}' not found in data")
             raise KeyError(f"Player name '{player_name}' not found in data")
 
         self.data = data
@@ -15,6 +21,7 @@ class PlayerStats:
 
         for col in (winner_col, loser_col):
             if col not in self.data.columns:
+                logger.error(f"Column '{col}' not found in data")
                 raise KeyError(f"Column '{col}' not found in data")
 
         if not use_opponent:
@@ -26,6 +33,10 @@ class PlayerStats:
 
         return data_in_match_won, data_in_match_lost
 
+    def _check_nonzero_denominator(self, denominator, context):
+        if denominator == 0:
+            logger.error(f"{context} for '{self.player_name}'")
+            raise ValueError(f"{context} for '{self.player_name}'")
 
     def get_ace_count(self):
         aces_in_match_won, aces_in_match_lost = self._get_data_column_helper('ace', False)
@@ -39,6 +50,9 @@ class PlayerStats:
 
         total_first_serves_in_match_won, total_first_serves_in_match_lost = self._get_data_column_helper('1stIn', False)
 
+        denominator =  total_service_points_match_won + total_service_points_match_lost
+        self._check_nonzero_denominator(denominator, f"No first serves data found for '{self.player_name}'")
+
         first_serve_percentage = ((total_first_serves_in_match_lost + total_first_serves_in_match_won) / (total_service_points_match_won + total_service_points_match_lost)) * 100
 
         return first_serve_percentage
@@ -48,8 +62,9 @@ class PlayerStats:
         total_break_points_faced_in_matches_won, total_break_points_faced_in_matches_lost = self._get_data_column_helper('bpFaced', False)
 
         total_break_points_saved_in_matches_won, total_break_points_saved_in_matches_lost  = self._get_data_column_helper('bpSaved', False)
-
-        break_points_saved = ((total_break_points_saved_in_matches_won + total_break_points_saved_in_matches_lost) / (total_break_points_faced_in_matches_won + total_break_points_faced_in_matches_lost)) * 100
+        denominator = total_break_points_faced_in_matches_won + total_break_points_faced_in_matches_lost
+        self._check_nonzero_denominator(denominator, f"No break points data found for '{self.player_name}'")
+        break_points_saved = ((total_break_points_saved_in_matches_won + total_break_points_saved_in_matches_lost) / denominator) * 100
 
         return break_points_saved
 
@@ -58,7 +73,8 @@ class PlayerStats:
         total_surface_matches_won = len(self.data[(self.data['winner_name'] == self.player_name) & (self.data['surface'] == surface)])
         total_surface_matches_lost = len(self.data[(self.data['loser_name'] == self.player_name) & (self.data['surface'] == surface)])
 
-        # TODO: Will need to consider division by zero error here. Will Fix later if need be.
+        total = total_surface_matches_lost + total_surface_matches_won
+        self._check_nonzero_denominator(total, f"No matches found on surface '{surface}'")
         surface_win_rate = (total_surface_matches_won / (total_surface_matches_won + total_surface_matches_lost)) * 100
 
         return surface_win_rate
@@ -85,6 +101,8 @@ class PlayerStats:
         bp_won = (break_points_faced_by_opponent_when_losing + break_points_faced_by_opponent_when_winning) - (break_points_saved_by_opponent_when_losing + break_points_saved_by_opponent_when_winning)
         total_bp = break_points_faced_by_opponent_when_losing + break_points_faced_by_opponent_when_winning
 
+        self._check_nonzero_denominator(total_bp, f"No break points data found for '{self.player_name}'")
+
         bp_conversion_rate = (bp_won / total_bp) * 100
 
         return bp_conversion_rate
@@ -94,7 +112,10 @@ class PlayerStats:
         first_serve_points_match_won, first_serve_points_match_lost = self._get_data_column_helper('1stIn', False)
         first_serves_won_in_match_won, first_serves_won_in_match_lost = self._get_data_column_helper('1stWon', False)
 
-        first_serve_win_percentage = ((first_serves_won_in_match_lost + first_serves_won_in_match_won) / (first_serve_points_match_won + first_serve_points_match_lost)) * 100
+        denominator = (first_serve_points_match_won + first_serve_points_match_lost)
+        self._check_nonzero_denominator(denominator, f"No first serve data found for '{self.player_name}'")
+
+        first_serve_win_percentage = ((first_serves_won_in_match_lost + first_serves_won_in_match_won) / denominator) * 100
 
         return first_serve_win_percentage
 
@@ -109,6 +130,8 @@ class PlayerStats:
 
         total_second_serves = (total_service_points_match_lost + total_service_points_match_won) - (first_serve_points_match_lost + first_serve_points_match_won)
 
+        self._check_nonzero_denominator(total_second_serves, f"No second serve data found for '{self.player_name}'")
+
         second_serves_win_percentage = (second_serves_won / total_second_serves) * 100
 
         return second_serves_win_percentage
@@ -117,7 +140,9 @@ class PlayerStats:
         total_matches_won = len(self.data[(self.data['winner_name'] == self.player_name)])
         total_matches_lost = len(self.data[(self.data['loser_name'] == self.player_name)])
 
-        return (total_matches_won / (total_matches_lost + total_matches_won)) * 100
+        self._check_nonzero_denominator(total_matches_won + total_matches_lost, f"No match data found for '{self.player_name}'")
+
+        return (total_matches_won / (total_matches_lost + total_matches_won)) * 100, total_matches_won, total_matches_lost
 
     def get_last_N_win_percentage(self, N):
         total_matches = self.data[(self.data['winner_name'] == self.player_name) | (self.data['loser_name'] == self.player_name)]
@@ -125,36 +150,40 @@ class PlayerStats:
 
         wins_in_last_N_matches = len(last_N_matches[last_N_matches['winner_name'] == self.player_name])
 
+        self._check_nonzero_denominator(len(last_N_matches), f"No match data found for '{self.player_name}' for last {N} matches")
+
         return (wins_in_last_N_matches / len(last_N_matches)) * 100
 
 
 data = pd.read_csv('../data/TML-Database/2006.csv')
 
 def main():
-    player = PlayerStats(data, 'Roger Federer')
+    player_name = 'Roger Federer'
+    player = PlayerStats(data, player_name)
 
-    print("Displaying stats for Jannik Sinner:-")
+    print(f"Displaying stats for {player_name}:-")
     print(f'Ace count: {player.get_ace_count()}')
 
-    print(f'First serve percentage: {player.get_first_serve_percentage()}')
+    print(f'First serve percentage: {player.get_first_serve_percentage():.2f}%')
 
-    print(f'Break points saved percentage: {player.get_break_points_saved_rate()}')
+    print(f'Break points saved percentage: {player.get_break_points_saved_rate():.2f}%')
 
-    print(f'Surface win rate: {player.get_surface_win_rate('Hard')}')
+    print(f'Surface win rate: {player.get_surface_win_rate('Hard'):.2f}%')
 
-    player_one_wins, player_two_wins = player.head_to_head_record('Carlos Alcaraz')
+    player_one_wins, player_two_wins = player.head_to_head_record('Novak Djokovic')
     print(f'{player_one_wins} - {player_two_wins}')
 
-    print(f'Break point conversion rate: {player.get_break_points_conversion_rate()}')
+    print(f'Break point conversion rate: {player.get_break_points_conversion_rate():.2f}%')
 
-    print(f'First serve win rate: {player.get_first_serve_win_percentage()}')
+    print(f'First serve win rate: {player.get_first_serve_win_percentage():.2f}%')
 
-    print(f'Second serve in rate: {player.get_second_serve_win_percentage()}')
+    print(f'Second serve in rate: {player.get_second_serve_win_percentage():.2f}%')
 
-    print(f'Win percentage: {player.get_win_percentage()}')
+    win_percentage, wins, losses = player.get_win_percentage()
+    print(f"{wins}-{losses} at {win_percentage:.2f}%")
 
     N = 10
-    print(f'Last {N} matches won: {player.get_last_N_win_percentage(N)}')
+    print(f'Last {N} matches won: {player.get_last_N_win_percentage(N):.2f}%')
 
 
 if __name__ == '__main__':
