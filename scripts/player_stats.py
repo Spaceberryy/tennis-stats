@@ -1,9 +1,52 @@
 import pandas as pd
+import os
+import glob
+from dotenv import load_dotenv
 
 import logging
-
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
+
+load_dotenv()
+DATA_DIR = os.getenv('DATA_DIR')
+
+if DATA_DIR is None:
+    raise ValueError("Environment variable DATA_DIR not set")
+
+def load_data(years = None):
+    # years = int, list of ints, or None
+    if years is None:
+        year_files = glob.glob(os.path.join(DATA_DIR, '[0-9][0-9][0-9][0-9].csv'))
+        if not year_files:
+            raise FileNotFoundError(f"No year CSV files found in {DATA_DIR}")
+        latest_file = max(year_files, key=lambda f: int(os.path.splitext(os.path.basename(f))[0]))
+        files = [latest_file]
+    elif isinstance(years, int):
+        files = [os.path.join(DATA_DIR, f'{years}.csv')]
+    else:
+        files = [os.path.join(DATA_DIR, f'{year}.csv') for year in years]
+
+    missing = [f for f in files if not os.path.exists(f)]
+    if missing:
+        raise FileNotFoundError(f"Mising data files: {missing}")
+
+    return pd.concat((pd.read_csv(f) for f in files), ignore_index = True)
+
+def find_player_years(player_name):
+    matching_years = []
+    for f in sorted(glob.glob(os.path.join(DATA_DIR, '[0-9][0-9][0-9][0-9].csv'))):
+        year = int(os.path.splitext(os.path.basename(f))[0])
+        names = pd.read_csv(f, usecols=['winner_name', 'loser_name'])
+        if player_name in names['winner_name'].values or player_name in names['loser_name'].values:
+            matching_years.append(year)
+
+    if not matching_years:
+        logger.error(f"Player '{player_name}' not found in any year's data")
+        raise ValueError(f"player '{player_name}' not found in any year's data")
+
+    return matching_years
+
+
 
 class PlayerStats:
     def __init__(self, data: pd.DataFrame, player_name):
@@ -155,10 +198,14 @@ class PlayerStats:
         return (wins_in_last_N_matches / len(last_N_matches)) * 100
 
 
-data = pd.read_csv('../data/TML-Database/2006.csv')
 
 def main():
-    player_name = 'Roger Federer'
+    player_name = 'Rafael Nadal'
+
+    player_career_years = find_player_years(player_name)
+
+    data = load_data(player_career_years)
+
     player = PlayerStats(data, player_name)
 
     print(f"Displaying stats for {player_name}:-")
@@ -168,16 +215,18 @@ def main():
 
     print(f'Break points saved percentage: {player.get_break_points_saved_rate():.2f}%')
 
-    print(f'Surface win rate: {player.get_surface_win_rate('Hard'):.2f}%')
+    surface = 'Clay' # please make sure that the first letter of the surface name is capital
+    print(f'win rate: {player.get_surface_win_rate(surface):.2f}%')
 
-    player_one_wins, player_two_wins = player.head_to_head_record('Novak Djokovic')
-    print(f'{player_one_wins} - {player_two_wins}')
+    opponent_name = 'Novak Djokovic'
+    player_one_wins, player_two_wins = player.head_to_head_record(opponent_name)
+    print(f'{player_one_wins} - {player_two_wins} against {opponent_name}')
 
     print(f'Break point conversion rate: {player.get_break_points_conversion_rate():.2f}%')
 
     print(f'First serve win rate: {player.get_first_serve_win_percentage():.2f}%')
 
-    print(f'Second serve in rate: {player.get_second_serve_win_percentage():.2f}%')
+    print(f'Second serve win rate: {player.get_second_serve_win_percentage():.2f}%')
 
     win_percentage, wins, losses = player.get_win_percentage()
     print(f"{wins}-{losses} at {win_percentage:.2f}%")
