@@ -4,6 +4,7 @@ import glob
 from dotenv import load_dotenv
 
 import logging
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -129,7 +130,8 @@ class PlayerStats:
 
         total = no_matches_won_by_player_one + no_matches_won_by_player_two
         if total == 0:
-            raise ValueError(f"No matches found for '{self.player_name}' and '{player_two}'")
+            return None
+        return no_matches_won_by_player_one, no_matches_won_by_player_two
 
 
         return no_matches_won_by_player_one, no_matches_won_by_player_two
@@ -180,6 +182,9 @@ class PlayerStats:
         return second_serves_win_percentage
 
     def get_win_percentage(self):
+        '''
+        returns the winning percentage of the player along with the number of matches won and matches lost
+        '''
         total_matches_won = len(self.data[(self.data['winner_name'] == self.player_name)])
         total_matches_lost = len(self.data[(self.data['loser_name'] == self.player_name)])
 
@@ -198,9 +203,8 @@ class PlayerStats:
         return (wins_in_last_N_matches / len(last_N_matches)) * 100
 
 
-
 def main():
-    player_name = 'Rafael Nadal'
+    player_name = 'Pete Sampras'
 
     player_career_years = find_player_years(player_name)
 
@@ -218,9 +222,13 @@ def main():
     surface = 'Clay' # please make sure that the first letter of the surface name is capital
     print(f'win rate: {player.get_surface_win_rate(surface):.2f}%')
 
-    opponent_name = 'Novak Djokovic'
-    player_one_wins, player_two_wins = player.head_to_head_record(opponent_name)
-    print(f'{player_one_wins} - {player_two_wins} against {opponent_name}')
+    opponent_name = 'Bjorn Borg'
+    record = player.head_to_head_record(opponent_name)
+    if record is None:
+        print(f"No Head to Head record found for {player_name} and {opponent_name}")
+    else:
+        player_one_wins, player_two_wins = record
+        print(f'{player_one_wins} - {player_two_wins} against {opponent_name}')
 
     print(f'Break point conversion rate: {player.get_break_points_conversion_rate():.2f}%')
 
