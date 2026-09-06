@@ -49,29 +49,33 @@ def process_match(player_data, winner_name, loser_name):
     player_data[loser_name]['matches_played'] += 1
 
 
-def main():
-    data = pd.read_csv('../data/TML-Database/2025.csv')
+def calculate_elo(data):
 
     player_names = pd.concat([data['winner_name'], data['loser_name']]).unique()
 
     default_elo = 1500
-    surfaces = ['Hard', 'Clay', 'Grass']
+    surfaces = ['Hard', 'Clay', 'Grass', 'Carpet', 'Overall']
 
     player_data = {
         surface: {name: {'elo': default_elo, 'matches_played': 0} for name in player_names}
         for surface in surfaces
     }
 
+    # dropping the rows which have nan for surface
+    data = data.dropna(subset='surface')
+
     for row in data.sort_values('tourney_date').itertuples():
         process_match(player_data[row.surface], row.winner_name, row.loser_name)
+        process_match(player_data['Overall'], row.winner_name, row.loser_name)
 
-    print("Hard: ", player_data['Hard']['Carlos Alcaraz'])
-    print("Clay:", player_data['Clay']['Carlos Alcaraz'])
-    print("Grass:", player_data['Grass']['Carlos Alcaraz'])
+    return player_data
 
+def get_player_elo(data, player_name, surface):
+    player_data = calculate_elo(data)
+    return player_data[surface][player_name]['elo']
 
-if __name__ == '__main__':
-    main()
+def get_all_players_data(data):
+    return calculate_elo(data)
 
 
 

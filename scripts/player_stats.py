@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import glob
 from dotenv import load_dotenv
+from fetch_data import load_data, find_player_years
 
 import logging
 
@@ -9,44 +10,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(mess
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-DATA_DIR = os.getenv('DATA_DIR')
-
-if DATA_DIR is None:
-    raise ValueError("Environment variable DATA_DIR not set")
-
-def load_data(years = None):
-    # years = int, list of ints, or None
-    if years is None:
-        year_files = glob.glob(os.path.join(DATA_DIR, '[0-9][0-9][0-9][0-9].csv'))
-        if not year_files:
-            raise FileNotFoundError(f"No year CSV files found in {DATA_DIR}")
-        latest_file = max(year_files, key=lambda f: int(os.path.splitext(os.path.basename(f))[0]))
-        files = [latest_file]
-    elif isinstance(years, int):
-        files = [os.path.join(DATA_DIR, f'{years}.csv')]
-    else:
-        files = [os.path.join(DATA_DIR, f'{year}.csv') for year in years]
-
-    missing = [f for f in files if not os.path.exists(f)]
-    if missing:
-        raise FileNotFoundError(f"Mising data files: {missing}")
-
-    return pd.concat((pd.read_csv(f) for f in files), ignore_index = True)
-
-def find_player_years(player_name):
-    matching_years = []
-    for f in sorted(glob.glob(os.path.join(DATA_DIR, '[0-9][0-9][0-9][0-9].csv'))):
-        year = int(os.path.splitext(os.path.basename(f))[0])
-        names = pd.read_csv(f, usecols=['winner_name', 'loser_name'])
-        if player_name in names['winner_name'].values or player_name in names['loser_name'].values:
-            matching_years.append(year)
-
-    if not matching_years:
-        logger.error(f"Player '{player_name}' not found in any year's data")
-        raise ValueError(f"player '{player_name}' not found in any year's data")
-
-    return matching_years
-
 
 
 class PlayerStats:
@@ -203,9 +166,7 @@ class PlayerStats:
         return (wins_in_last_N_matches / len(last_N_matches)) * 100
 
 
-def main():
-    player_name = 'Pete Sampras'
-
+def get_player_stats(player_name):
     player_career_years = find_player_years(player_name)
 
     data = load_data(player_career_years)
@@ -241,10 +202,6 @@ def main():
 
     N = 10
     print(f'Last {N} matches won: {player.get_last_N_win_percentage(N):.2f}%')
-
-
-if __name__ == '__main__':
-    main()
 
 
 
