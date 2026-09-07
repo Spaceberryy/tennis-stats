@@ -3,7 +3,7 @@ from elo import get_player_elo, get_all_players_data
 from fetch_data import load_data
 
 
-def top_10_elo(player_data):
+def top_X_elo_rankings(player_data, X):
     sorted_players_hard = sorted(
         player_data['Hard'].items(),
         key=lambda x: x[1]['elo'],
@@ -35,27 +35,27 @@ def top_10_elo(player_data):
     )
 
     print("Top 10 best hard court players of all time according to elo: ")
-    for name, info in sorted_players_hard[:10]:
+    for name, info in sorted_players_hard[:X]:
         print(f"{name}: {info['elo']:.1f} ({info['matches_played']} matches)")
     print()
 
     print("Top 10 best clay court players of all time according to elo: ")
-    for name, info in sorted_players_clay[:10]:
+    for name, info in sorted_players_clay[:X]:
         print(f"{name}: {info['elo']:.1f} ({info['matches_played']} matches)")
     print()
 
     print("Top 10 best grass court players of all time according to elo: ")
-    for name, info in sorted_players_grass[:10]:
+    for name, info in sorted_players_grass[:X]:
         print(f"{name}: {info['elo']:.1f} ({info['matches_played']} matches)")
     print()
 
     print("Top 10 best players of all time according to overall elo: ")
-    for name, info in sorted_players_overall[:10]:
+    for name, info in sorted_players_overall[:X]:
         print(f"{name}: {info['elo']:.1f} ({info['matches_played']} matches)")
     print()
 
     print("Top 10 best players of all time according to overall peak elo: ")
-    for name, info in sorted_players_overall_peak_elo[:10]:
+    for name, info in sorted_players_overall_peak_elo[:X]:
         print(f"{name}: {info['peak_elo']:.1f} ({info['matches_played']} matches)")
     print()
 
@@ -69,7 +69,7 @@ def main():
     # print(f'Elo overall: {get_player_elo(data, player_name, 'Overall'):.1f}')
 
     players_data = get_all_players_data(data)
-    top_10_elo(players_data)
+    top_X_elo_rankings(players_data, 10)
 
 
 if __name__ == '__main__':

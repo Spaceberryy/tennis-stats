@@ -24,7 +24,7 @@ def get_new_ratings(R_A, R_B, S_A, K_winner, K_loser):
 def get_k_factor(rating, matches_played):
     if matches_played < 30:
         return 40  # provisional / new player, rating not yet reliable
-    elif rating < 2100:
+    elif rating < 2000:
         return 20  # most players
     else:
         return 10  # elite tier, rating should be sticky
