@@ -28,28 +28,35 @@ def top_10_elo(player_data):
         reverse=True
     )
 
-    print("Top 10 best hard court players of all time according to elo: ")
+    sorted_players_overall_peak_elo = sorted(
+        player_data['Overall'].items(),
+        key=lambda x: x[1]['peak_elo'],
+        reverse=True
+    )
 
+    print("Top 10 best hard court players of all time according to elo: ")
     for name, info in sorted_players_hard[:10]:
         print(f"{name}: {info['elo']:.1f} ({info['matches_played']} matches)")
     print()
 
     print("Top 10 best clay court players of all time according to elo: ")
-
     for name, info in sorted_players_clay[:10]:
         print(f"{name}: {info['elo']:.1f} ({info['matches_played']} matches)")
     print()
 
     print("Top 10 best grass court players of all time according to elo: ")
-
     for name, info in sorted_players_grass[:10]:
         print(f"{name}: {info['elo']:.1f} ({info['matches_played']} matches)")
     print()
 
     print("Top 10 best players of all time according to overall elo: ")
-
     for name, info in sorted_players_overall[:10]:
         print(f"{name}: {info['elo']:.1f} ({info['matches_played']} matches)")
+    print()
+
+    print("Top 10 best players of all time according to overall peak elo: ")
+    for name, info in sorted_players_overall_peak_elo[:10]:
+        print(f"{name}: {info['peak_elo']:.1f} ({info['matches_played']} matches)")
     print()
 
 def main():

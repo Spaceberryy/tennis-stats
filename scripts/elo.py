@@ -42,6 +42,12 @@ def process_match(player_data, winner_name, loser_name):
 
     new_R_winner, new_R_loser = get_new_ratings(R_winner, R_loser, win, K_winner, K_loser)
 
+    if player_data[winner_name]['peak_elo'] < new_R_winner:
+        player_data[winner_name]['peak_elo'] = new_R_winner
+
+    if player_data[loser_name]['peak_elo'] < new_R_loser:
+        player_data[loser_name]['peak_elo'] = new_R_loser
+
     player_data[winner_name]['elo'] = new_R_winner
     player_data[loser_name]['elo'] = new_R_loser
 
@@ -57,7 +63,7 @@ def calculate_elo(data):
     surfaces = ['Hard', 'Clay', 'Grass', 'Carpet', 'Overall']
 
     player_data = {
-        surface: {name: {'elo': default_elo, 'matches_played': 0} for name in player_names}
+        surface: {name: {'elo': default_elo, 'matches_played': 0, 'peak_elo': 0} for name in player_names}
         for surface in surfaces
     }
 

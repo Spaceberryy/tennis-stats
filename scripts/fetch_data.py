@@ -17,7 +17,17 @@ if DATA_DIR is None:
 
 def load_data(years = None, from_year = None):
     # years = int, list of ints, or None
-    if years is None:
+    if from_year is not None:
+        year_files = glob.glob(os.path.join(DATA_DIR, '[0-9][0-9][0-9][0-9].csv'))
+        available_years = sorted(int(os.path.splitext(os.path.basename(f))[0]) for f in year_files)
+        files = sorted(
+            os.path.join(DATA_DIR, f'{year}.csv')
+            for year in available_years
+            if year >= from_year
+        )
+        if not files:
+            raise FileNotFoundError(f"No data files found from {from_year} onward")
+    elif years is None:
         year_files = glob.glob(os.path.join(DATA_DIR, '[0-9][0-9][0-9][0-9].csv'))
         if not year_files:
             raise FileNotFoundError(f"No year CSV files found in {DATA_DIR}")
