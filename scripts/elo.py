@@ -21,24 +21,36 @@ def get_new_ratings(R_A, R_B, S_A, K_winner, K_loser):
     return R_A, R_B
 
 
-def get_k_factor(rating, matches_played):
+def get_k_factor(rating, matches_played, tourney_level):
+    base_k = 0
     if matches_played < 30:
-        return 40  # provisional / new player, rating not yet reliable
+        base_k = 40
     elif rating < 2000:
-        return 20  # most players
+        base_k = 20
     else:
-        return 10  # elite tier, rating should be sticky
+        base_k = 10
+
+    if tourney_level == '250' or tourney_level == 'A' or tourney_level == 'D':
+        base_k *= 0.50
+    elif tourney_level == '500':
+        base_k *= 0.75
+    elif tourney_level == 'M':
+        base_k *= 0.90
+    elif tourney_level == 'G' or tourney_level == 'F':
+        base_k *= 1
+
+    return base_k
 
 
-def process_match(player_data, winner_name, loser_name):
+def process_match(player_data, winner_name, loser_name, tourney_level):
     win = 1
     loss = 0
 
     R_winner = player_data[winner_name]['elo']
     R_loser = player_data[loser_name]['elo']
 
-    K_winner = get_k_factor(R_winner, player_data[winner_name]['matches_played'])
-    K_loser = get_k_factor(R_loser, player_data[loser_name]['matches_played'])
+    K_winner = get_k_factor(R_winner, player_data[winner_name]['matches_played'], tourney_level)
+    K_loser = get_k_factor(R_loser, player_data[loser_name]['matches_played'], tourney_level)
 
     new_R_winner, new_R_loser = get_new_ratings(R_winner, R_loser, win, K_winner, K_loser)
 
@@ -71,8 +83,8 @@ def calculate_elo(data):
     data = data.dropna(subset='surface')
 
     for row in data.sort_values('tourney_date').itertuples():
-        process_match(player_data[row.surface], row.winner_name, row.loser_name)
-        process_match(player_data['Overall'], row.winner_name, row.loser_name)
+        process_match(player_data[row.surface], row.winner_name, row.loser_name, row.tourney_level)
+        process_match(player_data['Overall'], row.winner_name, row.loser_name, row.tourney_level)
 
     return player_data
 
