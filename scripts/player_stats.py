@@ -19,6 +19,8 @@ class PlayerStats:
             logger.error(f"Player name '{player_name}' not found in data")
             raise KeyError(f"Player name '{player_name}' not found in data")
 
+        data.dropna(subset='surface')
+        data = data.drop(data[data['score'] == 'W/O'].index)
         self.data = data
         self.player_name = player_name
 
@@ -45,11 +47,13 @@ class PlayerStats:
             logger.error(f"{context} for '{self.player_name}'")
             raise ValueError(f"{context} for '{self.player_name}'")
 
-    def get_ace_count(self):
+    def get_ace_rate(self):
         aces_in_match_won, aces_in_match_lost = self._get_data_column_helper('ace', False)
+        svpt_in_match_won, svpt_in_match_lost = self._get_data_column_helper('svpt', False)
         total_aces = aces_in_match_won + aces_in_match_lost
+        total_svpt = svpt_in_match_won + svpt_in_match_lost
 
-        return total_aces
+        return (total_aces / total_svpt) * 100
     
 
     def get_first_serve_percentage(self):
@@ -165,44 +169,82 @@ class PlayerStats:
 
         return (wins_in_last_N_matches / len(last_N_matches)) * 100
 
+    def get_return_points_win_rate(self):
+        opp_1st_won_in_match_won, opp_1st_won_in_match_lost = self._get_data_column_helper('1stWon', True)
+        opp_2nd_won_in_match_won, opp_2nd_won_in_match_lost = self._get_data_column_helper('2ndWon', True)
 
-def get_player_stats(player_name):
-    player_career_years = find_player_years(player_name)
+        p_1st_won_in_match_won, p_1st_won_in_match_lost = self._get_data_column_helper('1stWon')
+        p_2nd_won_in_match_won, p_2nd_won_in_match_lost = self._get_data_column_helper('2ndWon')
 
-    data = load_data(player_career_years)
+        opp_total_svpt_match_won, opp_total_svpt_match_lost = self._get_data_column_helper('svpt', True)
 
-    player = PlayerStats(data, player_name)
+        total_ret_pnts = (opp_total_svpt_match_won + opp_total_svpt_match_lost)
+        ret_pnts_won =  total_ret_pnts - (opp_1st_won_in_match_lost + opp_1st_won_in_match_won + opp_2nd_won_in_match_won + opp_2nd_won_in_match_lost)
 
-    print(f"Displaying stats for {player_name}:-")
-    print(f'Ace count: {player.get_ace_count()}')
+        return (ret_pnts_won / total_ret_pnts) * 100
 
-    print(f'First serve percentage: {player.get_first_serve_percentage():.2f}%')
+    def display_player_stats(self, opponent_name = None):
+        print(f"Displaying stats for {self.player_name}:-")
+        print(f'Ace rate: {self.get_ace_rate()}')
 
-    print(f'Break points saved percentage: {player.get_break_points_saved_rate():.2f}%')
+        print(f'First serve percentage: {self.get_first_serve_percentage():.2f}%')
 
-    surface = 'Clay' # please make sure that the first letter of the surface name is capital
-    print(f'win rate: {player.get_surface_win_rate(surface):.2f}%')
+        print(f'Break points saved percentage: {self.get_break_points_saved_rate():.2f}%')
 
-    opponent_name = 'Bjorn Borg'
-    record = player.head_to_head_record(opponent_name)
+        surfaces = ['Hard', 'Clay', 'Grass']
+        for surface in surfaces:
+            print(f'win rate on {surface}: {self.get_surface_win_rate(surface):.2f}%')
+
+        if opponent_name is not None:
+            record = self.head_to_head_record(opponent_name)
+            if record is None:
+                print(f"No Head to Head record found for {self.player_name} and {opponent_name}")
+            else:
+                player_one_wins, player_two_wins = record
+                print(f'{player_one_wins} - {player_two_wins} against {opponent_name}')
+
+        print(f'Break point conversion rate: {self.get_break_points_conversion_rate():.2f}%')
+
+        print(f'First serve win rate: {self.get_first_serve_win_percentage():.2f}%')
+
+        print(f'Second serve win rate: {self.get_second_serve_win_percentage():.2f}%')
+
+        print(f'Return points win rate: {self.get_return_points_win_rate():.2f}%')
+
+        win_percentage, wins, losses = self.get_win_percentage()
+        print(f"{wins}-{losses} at {win_percentage:.2f}%")
+
+        N = 10
+        print(f'Last {N} matches won: {self.get_last_N_win_percentage(N):.2f}%')
+
+
+
+def get_head_to_head_stats(data, p1, p2):
+    player_one = PlayerStats(data, p1)
+    player_two = PlayerStats(data, p2)
+
+    print(f'{p1} - {p2}')
+
+    print(f'Ace rate: {player_one.get_ace_rate():.2f}% - {player_two.get_ace_rate():.2f}%')
+
+    print(f'First serve percentage: {player_one.get_first_serve_percentage():.2f}% - {player_two.get_first_serve_percentage():.2f}%')
+
+    print(f'Break points saved percentage: {player_one.get_break_points_saved_rate():.2f}% - {player_two.get_break_points_saved_rate():.2f}%')
+
+    print(f'Break point conversion rate: {player_one.get_break_points_conversion_rate():.2f}% - {player_two.get_break_points_conversion_rate():.2f}%')
+
+    print(f'First serve win rate: {player_one.get_first_serve_win_percentage():.2f}% - {player_two.get_first_serve_win_percentage():.2f}%')
+
+    print(f'Second serve win rate: {player_one.get_second_serve_win_percentage():.2f}% - {player_two.get_second_serve_win_percentage():.2f}%')
+
+    print(f'Return points win rate: {player_one.get_return_points_win_rate():.2f}% - {player_two.get_return_points_win_rate():.2f}%')
+
+    record = player_one.head_to_head_record(p2)
     if record is None:
-        print(f"No Head to Head record found for {player_name} and {opponent_name}")
+        print(f"No Head to Head record found for {p1} and {p2}")
     else:
         player_one_wins, player_two_wins = record
-        print(f'{player_one_wins} - {player_two_wins} against {opponent_name}')
-
-    print(f'Break point conversion rate: {player.get_break_points_conversion_rate():.2f}%')
-
-    print(f'First serve win rate: {player.get_first_serve_win_percentage():.2f}%')
-
-    print(f'Second serve win rate: {player.get_second_serve_win_percentage():.2f}%')
-
-    win_percentage, wins, losses = player.get_win_percentage()
-    print(f"{wins}-{losses} at {win_percentage:.2f}%")
-
-    N = 10
-    print(f'Last {N} matches won: {player.get_last_N_win_percentage(N):.2f}%')
-
+        print(f'{player_one_wins} - {player_two_wins} against {p2}')
 
 
 
