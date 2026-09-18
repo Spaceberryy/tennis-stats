@@ -2,7 +2,7 @@ import pandas as pd
 import os
 import glob
 from dotenv import load_dotenv
-from fetch_data import load_data, find_player_years
+import numpy as np
 
 import logging
 
@@ -217,6 +217,20 @@ class PlayerStats:
         N = 10
         print(f'Last {N} matches won: {self.get_last_N_win_percentage(N):.2f}%')
 
+
+    def get_player_features(self, surface):
+        features = [
+            self.get_ace_rate(),
+            self.get_break_points_saved_rate(),
+            self.get_break_points_conversion_rate(),
+            self.get_surface_win_rate(surface),
+            self.get_first_serve_percentage(),
+            self.get_first_serve_win_percentage(),
+            self.get_second_serve_win_percentage(),
+            self.get_return_points_win_rate(),
+            self.get_win_percentage()
+        ]
+        return np.array(features)
 
 
 def get_head_to_head_stats(data, p1, p2):
