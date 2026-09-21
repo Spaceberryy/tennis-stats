@@ -24,12 +24,13 @@ def get_new_ratings(R_A, R_B, S_A, K_winner, K_loser):
 
 
 def get_k_factor(rating, matches_played, tourney_level):
+
     if matches_played < 100:
-        base_k = 40
-    elif rating > 2000:
-        base_k = 16
+        base_k = 40 - (matches_played * 0.2)
+    elif rating < 2100:
+        base_k = 20
     else:
-        base_k = 24
+        base_k = 10
 
     multipliers = {
         '250': 0.5,
