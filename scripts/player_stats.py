@@ -228,9 +228,9 @@ class PlayerStats:
             self.get_first_serve_win_percentage(),
             self.get_second_serve_win_percentage(),
             self.get_return_points_win_rate(),
-            self.get_win_percentage()
+            self.get_win_percentage()[0]
         ]
-        return np.array(features)
+        return np.array((features))
 
 
 def get_head_to_head_stats(data, p1, p2):

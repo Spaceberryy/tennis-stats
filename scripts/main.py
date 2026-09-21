@@ -42,6 +42,8 @@ def single_player_stats(player_name, opponent_name = None):
 
     player = PlayerStats(data, player_name)
     player.display_player_stats(opponent_name)
+    npfeatures = player.get_player_features('Clay')
+    print(npfeatures)
 
 def head_to_head_stats(p1, p2, full_career = True):
     data = load_data()
@@ -58,8 +60,8 @@ def main():
 
     # single_player_elo('Novak Djokovic')
     # top_X_elo(data)
-    # single_player_stats('Roger Federer', opponent_name = 'Novak Djokovic')
-    head_to_head_stats('Roger Federer', 'Novak Djokovic', full_career=True)
+    single_player_stats('Roger Federer', opponent_name = 'Novak Djokovic')
+    # head_to_head_stats('Roger Federer', 'Novak Djokovic', full_career=True)
 
 
 
