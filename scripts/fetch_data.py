@@ -58,4 +58,12 @@ def find_player_years(player_name):
 
     return matching_years
 
+def clean_data(data):
+    data = data.dropna(subset='surface')
+    data = data.drop(data[data['score'] == 'W/O'].index)
+    filtered_data = data.sort_values(['tourney_date', 'match_num'])
+    return filtered_data
+
+def get_player_rows(df, name):
+    return df[(df['winner_name'] == name) | (df['loser_name'] == name)]
 

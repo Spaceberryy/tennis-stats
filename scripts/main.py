@@ -1,6 +1,8 @@
 from player_stats import PlayerStats, get_head_to_head_stats
 from elo import get_player_elo, get_all_players_data
-from fetch_data import load_data, find_player_years
+from fetch_data import load_data, find_player_years, get_player_rows
+from scripts.fetch_data import clean_data
+import time
 
 
 def top_X_elo_rankings(player_data, X):
@@ -39,6 +41,8 @@ def single_player_stats(player_name, opponent_name = None):
     player_career_years = find_player_years(player_name)
 
     data = load_data(player_career_years)
+    data = clean_data(data)
+    data = get_player_rows(data, player_name)
 
     player = PlayerStats(data, player_name)
     player.display_player_stats(opponent_name)
@@ -57,10 +61,14 @@ def head_to_head_stats(p1, p2, full_career = True):
 
 def main():
     data = load_data()
+    data = clean_data(data)
 
     # single_player_elo('Novak Djokovic')
-    # top_X_elo(data)
-    single_player_stats('Roger Federer', opponent_name = 'Novak Djokovic')
+
+    top_X_elo(data)
+
+    single_player_stats('Bjorn Borg', opponent_name = 'Novak Djokovic')
+
     # head_to_head_stats('Roger Federer', 'Novak Djokovic', full_career=True)
 
 

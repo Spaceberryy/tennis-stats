@@ -4,10 +4,12 @@ from fetch_data import load_data, find_player_years
 import numpy as np
 
 def main():
-    matches = load_data(years=2020, is_male = True)
+    matches = load_data(years=2023)
+    print(len(matches))
 
     X_rows = []
     Y_rows = []
+    counter = 0
 
     for i in range(len(matches)):
         match = matches.iloc[i]
@@ -29,10 +31,18 @@ def main():
             Y_rows.append(0)
 
         except (KeyError, ValueError):
+            counter += 1
             continue
 
     X = np.array(X_rows)
     Y = np.array(Y_rows)
+
+    print(counter)
+    print(X)
+    print(Y)
+    print(len(X))
+    print(len(Y))
+
 
 if __name__ == '__main__':
     main()

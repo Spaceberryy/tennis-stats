@@ -19,8 +19,6 @@ class PlayerStats:
             logger.error(f"Player name '{player_name}' not found in data")
             raise KeyError(f"Player name '{player_name}' not found in data")
 
-        data.dropna(subset='surface')
-        data = data.drop(data[data['score'] == 'W/O'].index)
         self.data = data
         self.player_name = player_name
 
