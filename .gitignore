@@ -2,7 +2,6 @@
 data/
 !data/jeff/README.md
 !data/jeff/data_dictionary.txt
-!data/TML-Database/README.md
 
 # Python
 __pycache__/

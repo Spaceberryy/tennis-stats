@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import math
 
+from scripts.fetch_data import clean_data
+
 
 def get_expected_probability(R_A, R_B):
     return 1 / (1 + math.pow(10, (R_B - R_A) / 400))
@@ -22,24 +24,25 @@ def get_new_ratings(R_A, R_B, S_A, K_winner, K_loser):
 
 
 def get_k_factor(rating, matches_played, tourney_level):
-    base_k = 0
-    if matches_played < 30:
-        base_k = 40
-    elif rating < 2000:
+
+    if matches_played < 100:
+        base_k = 40 - (matches_played * 0.2)
+    elif rating < 2100:
         base_k = 20
     else:
         base_k = 10
 
-    if tourney_level == '250' or tourney_level == 'A' or tourney_level == 'D':
-        base_k *= 0.50
-    elif tourney_level == '500':
-        base_k *= 0.75
-    elif tourney_level == 'M':
-        base_k *= 0.90
-    elif tourney_level == 'G' or tourney_level == 'F':
-        base_k *= 1
+    multipliers = {
+        '250': 0.5,
+        '500': 0.7,
+        'M': 0.9,
+        'F': 1.0,
+        'G': 1.2
+    }
 
-    return base_k
+    multiplier = multipliers.get(tourney_level, 0.50)
+
+    return base_k * multiplier
 
 
 def process_match(player_data, winner_name, loser_name, tourney_level):
@@ -78,9 +81,6 @@ def calculate_elo(data):
         surface: {name: {'elo': default_elo, 'matches_played': 0, 'peak_elo': 0} for name in player_names}
         for surface in surfaces
     }
-
-    # dropping the rows which have nan for surface
-    data = data.dropna(subset='surface')
 
     for row in data.sort_values('tourney_date').itertuples():
         process_match(player_data[row.surface], row.winner_name, row.loser_name, row.tourney_level)
