@@ -65,9 +65,9 @@ def main():
 
     # single_player_elo('Novak Djokovic')
 
-    top_X_elo(data)
+    # top_X_elo(data)
 
-    # single_player_stats('Roger Federer', opponent_name = 'Novak Djokovic')
+    single_player_stats('Roger Federer', opponent_name = 'Novak Djokovic')
 
     # head_to_head_stats('Roger Federer', 'Novak Djokovic', full_career=True)
 

@@ -2,8 +2,6 @@
 data/
 !data/jeff/README.md
 !data/jeff/data_dictionary.txt
-notebooks/
- !*.ipynb
 
 # Python
 __pycache__/
