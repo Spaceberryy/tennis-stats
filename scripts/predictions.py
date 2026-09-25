@@ -2,11 +2,10 @@ from collections import defaultdict
 import numpy as np
 from fetch_data import load_data, clean_data, get_player_rows
 from collections import deque
-
-from scripts.fetch_data import find_player_years
-
-h2h_record = defaultdict(lambda: defaultdict(int))
-recent_form = defaultdict(lambda: deque(maxlen = 10))
+from elo import process_match, get_k_factor
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
 
 STAT_COLS = [
     'ace',
@@ -19,7 +18,7 @@ STAT_COLS = [
 ]
 
 
-def get_features(player_stats, surface_wins, surface_losses, h2h_win_pct, recent_form_pct):
+def get_features(player_stats, surface_wins, surface_losses, h2h_win_pct, recent_form_pct, elo, opp_elo):
     """Calculate features from one player's running statistics."""
 
     second_serve_points = player_stats['svpt'] - player_stats['1stIn']
@@ -30,25 +29,18 @@ def get_features(player_stats, surface_wins, surface_losses, h2h_win_pct, recent
 
     return np.array([
         player_stats['ace'] / player_stats['svpt'] * 100,  # Ace rate
-
         player_stats['bpSaved'] / player_stats['bpFaced'] * 100,  # BP saved %
-
-        # Break points converted on return
-        (player_stats['opp_bpFaced'] - player_stats['opp_bpSaved']) / player_stats['opp_bpFaced'] * 100,
-
-        # Win rate on the current surface
-        surface_wins / (surface_wins + surface_losses) * 100,
-
-        player_stats['1stIn'] / player_stats['svpt'] * 100,  # 1st serve %
+        (player_stats['opp_bpFaced'] - player_stats['opp_bpSaved']) / player_stats['opp_bpFaced'] * 100, # Break points converted on return
+        (surface_wins / (surface_wins + surface_losses)) * 100, # Win rate on the current surface
+        (player_stats['1stIn'] / player_stats['svpt']) * 100,  # 1st serve %
         first_serve_win_pct,
         return_pts_won_pct,
         second_service_win_pct,
-        # Overall win rate
-        player_stats['wins'] / (player_stats['wins'] + player_stats['losses']) * 100,
+        player_stats['wins'] / (player_stats['wins'] + player_stats['losses']) * 100, # Overall win rate
         h2h_win_pct,
-        # dominance ratio
-        return_pts_won_pct / (100 - total_service_pts_won_pct) if total_service_pts_won_pct < 100 else 0,
+        return_pts_won_pct / (100 - total_service_pts_won_pct) if total_service_pts_won_pct < 100 else 0, # dominance ratio
         recent_form_pct,
+        elo - opp_elo,
     ])
 
 def add_match_stats(player_stats, own_stats, opponent_stats):
@@ -78,7 +70,7 @@ def get_X_Y_rows(matches):
     ]
 
     # Missing match statistics are treated as zero.
-    matches[stat_columns] = matches[stat_columns].fillna(0)
+    matches = matches.dropna(subset = stat_columns)
 
     match_rows = matches.to_dict('records')
 
@@ -90,6 +82,17 @@ def get_X_Y_rows(matches):
 
     X_rows = []
     Y_rows = []
+
+    surfaces = ['Hard', 'Clay', 'Grass', 'Carpet', 'Overall']
+    default_elo = 1500
+
+    h2h_record = defaultdict(lambda: defaultdict(int))
+    recent_form = defaultdict(lambda: deque(maxlen=10))
+    elo_data = {
+        surface: defaultdict(lambda: {'elo': default_elo, 'matches_played': 0, 'peak_elo': 0})
+        for surface in surfaces
+    }
+
     skipped_matches = 0
 
 
@@ -104,6 +107,9 @@ def get_X_Y_rows(matches):
         winner_form = get_recent_form_pct(winner, recent_form)
         loser_form = get_recent_form_pct(loser, recent_form)
 
+        winner_elo = elo_data[surface][winner]['elo']
+        loser_elo = elo_data[surface][loser]['elo']
+
         try:
             winner_surface_wins, winner_surface_losses = (
                 surface_records[(winner, surface)]
@@ -117,7 +123,9 @@ def get_X_Y_rows(matches):
                 winner_surface_wins,
                 winner_surface_losses,
                 winner_h2h,
-                winner_form
+                winner_form,
+                winner_elo,
+                loser_elo
             )
 
             loser_features = get_features(
@@ -125,7 +133,9 @@ def get_X_Y_rows(matches):
                 loser_surface_wins,
                 loser_surface_losses,
                 loser_h2h,
-                loser_form
+                loser_form,
+                loser_elo,
+                winner_elo
             )
 
             # Add both perspectives so the model sees winner and loser examples.
@@ -172,6 +182,9 @@ def get_X_Y_rows(matches):
         recent_form[winner].append(1)
         recent_form[loser].append(0)
 
+        process_match(elo_data[surface], winner, loser, match['tourney_level'])
+        process_match(elo_data['Overall'], winner, loser, match['tourney_level'])
+
 
     X = np.array(X_rows)
     Y = np.array(Y_rows)
@@ -179,8 +192,18 @@ def get_X_Y_rows(matches):
     return X, Y
 
 def main():
-    matches = clean_data(load_data(years=2023)).reset_index(drop=True)
+    matches = clean_data(load_data(from_year=2010)).reset_index(drop=True)
     X, Y = get_X_Y_rows(matches)
+
+    split = int(len(X) * 0.8) // 2 * 2
+    X_train, X_test = X[:split], X[split:]
+    Y_train, Y_test = Y[:split], Y[split:]
+
+
+    model = make_pipeline(StandardScaler(), LogisticRegression())
+    model.fit(X_train, Y_train)
+    print(f"accuracy: {model.score(X_test, Y_test)}")
+    print(model[-1].coef_)
 
 if __name__ == '__main__':
     main()
