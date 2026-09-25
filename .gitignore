@@ -4,6 +4,9 @@ data/
 !data/jeff/data_dictionary.txt
 !data/TML-Database/README.md
 
+notebooks/
+!.ipynb
+
 # Python
 __pycache__/
 *.pyc
