@@ -1,13 +1,11 @@
 Tennis Match Predictor
 
 A tennis-only stats and machine learning project that analyzes player performance, tracks Elo ratings, and predicts match outcomes based on playstyle and historical data.
+
 <img width="442" height="387" alt="image" src="https://github.com/user-attachments/assets/4bfb5123-2e4b-40cf-971c-b4b209a108b8" />
-
-
 
 Player Stats & Head-to-Head
 <img width="517" height="276" alt="image" src="https://github.com/user-attachments/assets/cac3f9ac-6c10-4b50-9e2c-ade787dbceff" />
-
 
 
 Tracks per-player performance metrics including ace rate, first/second serve win %, break points saved/converted %, return points won %, and head-to-head records between any two players, presented as side-by-side comparisons for a given matchup.
