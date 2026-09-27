@@ -23,5 +23,6 @@ A surface-specific Elo rating system (hard, clay, grass) that adjusts starting E
 ML Model
 
 A scikit-learn model trained on aggregate match stats (serve %, break points, surface, recent form, head-to-head) to predict match outcomes for top-100 players. Currently sitting at 63.4% accuracy, with ongoing work to improve performance before adding situational features (big points, serve tendencies) for top players in a later phase.
+
 <img width="333" height="48" alt="image" src="https://github.com/user-attachments/assets/cced5d4e-6bb1-498a-8a93-7ccdee373dd5" />
 
